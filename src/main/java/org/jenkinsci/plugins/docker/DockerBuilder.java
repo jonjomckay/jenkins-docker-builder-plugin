@@ -1,7 +1,7 @@
 package org.jenkinsci.plugins.docker;
+
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.DockerException;
 import hudson.Launcher;
 import hudson.Extension;
 import hudson.util.FormValidation;
@@ -17,6 +17,8 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Sample {@link Builder}.
@@ -26,7 +28,7 @@ import java.io.IOException;
  * {@link DescriptorImpl#newInstance(StaplerRequest)} is invoked
  * and a new {@link DockerBuilder} is created. The created
  * instance is persisted to the project configuration XML by using
- * XStream, so this allows you to use instance fields (like {@link #name})
+ * XStream, so this allows you to use instance fields (like {@link #repository})
  * to remember the configuration.
  *
  * <p>
@@ -37,20 +39,30 @@ import java.io.IOException;
  */
 public class DockerBuilder extends Builder {
 
-    private final String name;
+    private final String repository;
+    private List<Tag> tags = new ArrayList<Tag>();
+
     private DockerClient dockerClient = null;
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public DockerBuilder(String name) {
-        this.name = name;
+    public DockerBuilder(String repository, List<Tag> tags) {
+        this.repository = repository;
+
+        if (tags != null) {
+            this.tags.addAll(tags);
+        }
     }
 
     /**
      * We'll use this from the <tt>config.jelly</tt>.
      */
-    public String getName() {
-        return name;
+    public String getRepository() {
+        return repository;
+    }
+
+    public Tag[] getTags() {
+        return tags.toArray(new Tag[tags.size()]);
     }
 
     @Override
@@ -74,6 +86,14 @@ public class DockerBuilder extends Builder {
             listener.getLogger().println("No Docker host was specified in System settings");
 
             return false;
+        }
+
+        if (!tags.isEmpty()) {
+            listener.getLogger().println("Tags given are:");
+
+            for (Tag tag : tags) {
+                listener.getLogger().println(tag.getTag());
+            }
         }
 
         return true;
